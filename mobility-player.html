@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobility Player</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #14141f;
+    --muted: #8a8aa5;
+    --accent: #ff6b35;
+    --accent2: #2dd4a0;
+    --blue: #4a9eff;
+    --bg: #0d0d14;
+    --card: #1a1a26;
+    --rule: #2a2a3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: #fff;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { position: fixed; inset: 0; display: none; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== START SCREEN ===== */
+  #startScreen {
+    align-items: center; justify-content: center;
+    padding: 32px;
+    background: radial-gradient(circle at 50% 30%, #1c1c2e 0%, var(--bg) 70%);
+  }
+  .start-inner { max-width: 440px; width: 100%; text-align: center; }
+  .brand-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
+  }
+  .start-inner h1 {
+    font-family: 'DM Serif Display', serif; font-size: 44px; line-height: 1.05;
+    margin-bottom: 12px;
+  }
+  .start-sub { color: var(--muted); font-size: 14px; margin-bottom: 40px; line-height: 1.6; }
+
+  .mode-card {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 16px;
+    padding: 24px; margin-bottom: 16px; cursor: pointer; text-align: left;
+    transition: transform 0.15s, border-color 0.15s;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .mode-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .mode-card:active { transform: scale(0.98); }
+  .mode-icon {
+    width: 54px; height: 54px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mode-icon.home { background: rgba(45,212,160,0.15); }
+  .mode-icon.gym { background: rgba(74,158,255,0.15); }
+  .mode-info h2 { font-size: 20px; font-weight: 600; margin-bottom: 3px; }
+  .mode-info p { font-size: 12.5px; color: var(--muted); }
+  .mode-count {
+    margin-left: auto; font-size: 12px; color: var(--muted);
+    font-weight: 600; white-space: nowrap;
+  }
+
+  .start-footer { margin-top: 24px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+  /* ===== WORKOUT SCREEN ===== */
+  #workoutScreen { background: var(--bg); }
+
+  .top-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; border-bottom: 1px solid var(--rule);
+  }
+  .exit-btn {
+    background: var(--card); border: 1px solid var(--rule); color: var(--muted);
+    width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
+    font-size: 18px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .progress-wrap { flex: 1; }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted); margin-bottom: 6px;
+    font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .progress-track { height: 5px; background: var(--rule); border-radius: 3px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px; width: 0%; transition: width 0.4s;
+  }
+
+  .workout-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px; gap: 18px; overflow-y: auto;
+  }
+
+  .phase-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+  }
+  .phase-tag.warmup { background: rgba(255,180,50,0.15); color: #ffb432; }
+  .phase-tag.release { background: rgba(255,107,53,0.15); color: var(--accent); }
+  .phase-tag.stretch { background: rgba(180,90,230,0.15); color: #b45ae6; }
+  .phase-tag.mobility { background: rgba(74,158,255,0.15); color: var(--blue); }
+  .phase-tag.activation { background: rgba(45,212,160,0.15); color: var(--accent2); }
+  .phase-tag.strengthen { background: rgba(220,220,240,0.12); color: #dcdcf0; }
+
+  .demo-stage {
+    width: 100%; max-width: 360px; aspect-ratio: 1.3;
+    background: var(--card); border: 1px solid var(--rule); border-radius: 20px;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    position: relative; overflow: hidden;
+  }
+  .demo-stage svg { width: 90%; height: 90%; }
+
+  .ex-name {
+    font-family: 'DM Serif Display', serif; font-size: 28px;
+    text-align: center; line-height: 1.15;
+  }
+  .ex-meta-row { display: flex; gap: 10px; align-items: center; }
+  .ex-chip {
+    font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;
+    background: var(--card); border: 1px solid var(--rule); color: var(--muted);
+  }
+  .ex-cue {
+    text-align: center; color: var(--muted); font-size: 13.5px;
+    max-width: 420px; line-height: 1.55; font-style: italic;
+  }
+
+  /* TIMER RING */
+  .timer-zone { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ring-wrap { position: relative; width: 150px; height: 150px; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--rule); stroke-width: 9; }
+  .ring-fg {
+    fill: none; stroke: var(--accent); stroke-width: 9; stroke-linecap: round;
+    transition: stroke-dashoffset 0.95s linear, stroke 0.3s;
+  }
+  .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .ring-time { font-size: 42px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .ring-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
+
+  /* CONTROLS */
+  .controls {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 16px 20px 28px; border-top: 1px solid var(--rule);
+  }
+  .ctrl-btn {
+    background: var(--card); border: 1px solid var(--rule); color: #fff;
+    border-radius: 14px; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s, background 0.15s;
+  }
+  .ctrl-btn:active { transform: scale(0.93); }
+  .ctrl-btn.secondary { width: 52px; height: 52px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .ctrl-btn.primary {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #ff8c5a); border: none;
+    font-size: 26px;
+  }
+  .ctrl-btn.secondary:hover { border-color: var(--accent); color: #fff; }
+
+  /* REST OVERLAY */
+  .workout-body.resting .demo-stage { opacity: 0.35; }
+  .rest-banner {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-family: 'DM Serif Display', serif; font-size: 30px; color: var(--accent2);
+    display: none; text-align: center;
+  }
+  .workout-body.resting .rest-banner { display: block; }
+  .rest-next { font-size: 13px; color: var(--muted); font-family: 'DM Sans'; margin-top: 6px; font-style: normal; }
+
+  /* DONE SCREEN */
+  #doneScreen {
+    align-items: center; justify-content: center; padding: 32px; text-align: center;
+    background: radial-gradient(circle at 50% 40%, #14241f 0%, var(--bg) 70%);
+  }
+  #doneScreen h1 { font-family: 'DM Serif Display', serif; font-size: 40px; margin-bottom: 12px; }
+  #doneScreen p { color: var(--muted); margin-bottom: 32px; }
+  .done-check {
+    width: 80px; height: 80px; border-radius: 50%; background: rgba(45,212,160,0.15);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;
+    font-size: 40px;
+  }
+  .restart-btn {
+    background: linear-gradient(135deg, var(--accent), #ff8c5a); border: none;
+    color: #fff; font-family: inherit; font-size: 15px; font-weight: 600;
+    padding: 14px 32px; border-radius: 12px; cursor: pointer;
+  }
+
+  .up-next-list { text-align: left; margin-top: 8px; max-width: 320px; width: 100%; }
+
+  @media (max-width: 420px) {
+    .ex-name { font-size: 23px; }
+    .ring-wrap { width: 128px; height: 128px; }
+    .ring-time { font-size: 36px; }
+    .start-inner h1 { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ START SCREEN ============ -->
+<div class="screen active" id="startScreen">
+  <div class="start-inner">
+    <div class="brand-label">Follow-Along Mobility</div>
+    <h1>Pick Your Routine</h1>
+    <p class="start-sub">Smart timing, automatic transitions, on-screen form cues and demonstrations. Beeps signal each change so you can work hands-free.</p>
+
+    <div class="mode-card" onclick="startWorkout('home')">
+      <div class="mode-icon home">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2dd4a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div class="mode-info">
+        <h2>Home / Anywhere</h2>
+        <p>No equipment beyond a foam roller &amp; mat</p>
+      </div>
+      <div class="mode-count" id="homeCount">8 moves</div>
+    </div>
+
+    <div class="mode-card" onclick="startWorkout('gym')">
+      <div class="mode-icon gym">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11"/><path d="M21 21l-1-1"/><path d="M3 3l1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10l7-7"/><path d="M14 21l7-7"/></svg>
+      </div>
+      <div class="mode-info">
+        <h2>Full Gym</h2>
+        <p>Adds bands, cable, treadmill &amp; loaded work</p>
+      </div>
+      <div class="mode-count" id="gymCount">13 moves</div>
+    </div>
+
+    <p class="start-footer">Tip: add this page to your home screen for a full-screen app feel. Keep the screen awake while you train.</p>
+  </div>
+</div>
+
+<!-- ============ WORKOUT SCREEN ============ -->
+<div class="screen" id="workoutScreen">
+  <div class="top-bar">
+    <button class="exit-btn" onclick="exitWorkout()">&times;</button>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span id="progressLabel">Exercise 1 of 8</span>
+        <span id="modeLabel">Home</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <div class="workout-body" id="workoutBody">
+    <div class="phase-tag" id="phaseTag">Warmup</div>
+    <div class="demo-stage">
+      <div id="demoSlot"></div>
+      <div class="rest-banner">Rest<div class="rest-next" id="restNext"></div></div>
+    </div>
+    <div class="ex-name" id="exName">Exercise</div>
+    <div class="ex-meta-row">
+      <span class="ex-chip" id="exChip">2 × 10</span>
+    </div>
+    <div class="ex-cue" id="exCue">Cue text</div>
+
+    <div class="timer-zone">
+      <div class="ring-wrap">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle class="ring-bg" cx="75" cy="75" r="66"/>
+          <circle class="ring-fg" id="ringFg" cx="75" cy="75" r="66"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-time" id="ringTime">30</div>
+          <div class="ring-label" id="ringLabel">seconds</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn secondary" onclick="prevExercise()">Prev</button>
+    <button class="ctrl-btn primary" id="playBtn" onclick="togglePlay()">❚❚</button>
+    <button class="ctrl-btn secondary" onclick="skipExercise()">Skip</button>
+  </div>
+</div>
+
+<!-- ============ DONE SCREEN ============ -->
+<div class="screen" id="doneScreen">
+  <div>
+    <div class="done-check">✓</div>
+    <h1>Routine Complete</h1>
+    <p id="doneSummary">Nice work. Your upper back thanks you.</p>
+    <button class="restart-btn" onclick="backToStart()">Back to Start</button>
+  </div>
+</div>
+
+<script>
+// ============ SVG DEMONSTRATIONS ============
+const SVG = {
+  heat: `<svg viewBox="0 0 180 130"><g fill="none" stroke="#ffb432" stroke-width="2" stroke-linecap="round"><path d="M70 95 Q60 80 70 65 Q80 55 72 40"><animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/></path><path d="M95 100 Q85 82 95 65 Q105 53 96 35"><animate attributeName="opacity" values="0.5;1;0.5" dur="2.4s" repeatCount="indefinite"/></path><path d="M120 95 Q110 80 120 65 Q130 55 122 42"><animate attributeName="opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/></path></g><rect x="55" y="95" width="80" height="22" rx="11" fill="#ff6b35" opacity="0.85"/><text x="95" y="110" font-size="10" fill="#fff" text-anchor="middle" font-family="DM Sans" font-weight="600">heat pad</text></svg>`,
+
+  massager: `<svg viewBox="0 0 180 130"><circle cx="90" cy="24" r="13" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><rect x="85" y="36" width="10" height="10" rx="2" fill="#e8c9a0" stroke="#fff" stroke-width="1"/><path d="M55 55 Q90 42 125 55 L128 82 Q90 73 52 82 Z" fill="#3a3a4a" stroke="#fff" stroke-width="1.5"/><g><rect x="105" y="50" width="22" height="12" rx="5" fill="#ff6b35"/><circle cx="105" cy="56" r="5" fill="#ff6b35"/><animateTransform attributeName="transform" type="translate" values="0 0; 0 22; 0 0" dur="2.5s" repeatCount="indefinite"/></g><ellipse cx="112" cy="60" rx="16" ry="9" fill="#ff6b35" opacity="0.18"/></svg>`,
+
+  neckStretch: `<svg viewBox="0 0 180 130"><g><animateTransform attributeName="transform" type="rotate" values="0 90 50; -14 90 50; -14 90 50; 0 90 50" dur="4s" repeatCount="indefinite"/><circle cx="90" cy="26" r="13" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/></g><rect x="80" y="44" width="20" height="36" rx="4" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><ellipse cx="70" cy="52" rx="14" ry="8" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><ellipse cx="110" cy="52" rx="14" ry="8" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><path d="M 60 18 Q 52 10 47 18" stroke="#b45ae6" stroke-width="1.5" fill="none" stroke-linecap="round"/><polygon points="44,16 50,22 48,14" fill="#b45ae6"/></svg>`,
+
+  foamRoller: `<svg viewBox="0 0 180 130"><ellipse cx="90" cy="95" rx="58" ry="11" fill="#3a5a8a"/><rect x="32" y="84" width="116" height="11" fill="#3a5a8a"/><ellipse cx="90" cy="84" rx="58" ry="11" fill="#4a9eff" stroke="#fff" stroke-width="1.5"/><g><animateTransform attributeName="transform" type="translate" values="0 0; -8 -3; 0 0" dur="3s" repeatCount="indefinite"/><circle cx="146" cy="68" r="11" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><ellipse cx="136" cy="63" rx="8" ry="5" fill="#e8c9a0" stroke="#fff" stroke-width="1"/><path d="M 136 70 Q 112 66 88 70 Q 73 74 58 79" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M 58 79 Q 48 87 43 99 L 37 114" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></g><path d="M 100 56 Q 100 48 108 46" stroke="#4a9eff" stroke-width="1.5" fill="none" stroke-linecap="round"/><polygon points="106,43 114,48 108,52" fill="#4a9eff"/></svg>`,
+
+  reachThrough: `<svg viewBox="0 0 180 130"><path d="M 38 70 L 128 58" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="138" cy="52" r="11" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="116" y1="60" x2="116" y2="90" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="116" cy="93" rx="7" ry="4" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><g><animate attributeName="opacity" values="1;0.15;1" dur="3s" repeatCount="indefinite"/><path d="M 90 64 Q 72 62 55 72 Q 44 78 38 85" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="38" cy="86" r="6" fill="#e8c9a0" stroke="#4a9eff" stroke-width="1.5"/></g><g><animate attributeName="opacity" values="0.15;1;0.15" dur="3s" repeatCount="indefinite"/><path d="M 90 64 Q 86 48 80 36" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="79" cy="33" r="6" fill="#e8c9a0" stroke="#4a9eff" stroke-width="1.5"/></g><line x1="20" y1="105" x2="160" y2="105" stroke="#3a3a4a" stroke-width="1.5"/></svg>`,
+
+  catCow: `<svg viewBox="0 0 180 130"><g><animate attributeName="opacity" values="1;0.12;1" dur="3.4s" repeatCount="indefinite"/><path d="M 45 75 Q 90 58 135 75" stroke="#4a9eff" stroke-width="3" stroke-linecap="round" fill="none"/><text x="90" y="50" font-size="9" fill="#4a9eff" text-anchor="middle" font-family="DM Sans" font-weight="600">cat (round up)</text></g><g><animate attributeName="opacity" values="0.12;1;0.12" dur="3.4s" repeatCount="indefinite"/><path d="M 45 75 Q 90 92 135 75" stroke="#b45ae6" stroke-width="3" stroke-linecap="round" fill="none"/><text x="90" y="112" font-size="9" fill="#b45ae6" text-anchor="middle" font-family="DM Sans" font-weight="600">cow (arch)</text></g><circle cx="142" cy="72" r="9" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="60" y1="74" x2="58" y2="100" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="120" y1="74" x2="122" y2="100" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="102" x2="160" y2="102" stroke="#3a3a4a" stroke-width="1.5"/></svg>`,
+
+  bookOpener: `<svg viewBox="0 0 180 130"><line x1="10" y1="108" x2="170" y2="108" stroke="#3a3a4a" stroke-width="1.5"/><path d="M 30 95 Q 60 88 100 85 Q 125 83 145 88" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"/><circle cx="150" cy="80" r="12" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><path d="M 30 95 Q 22 105 28 108" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/><line x1="100" y1="85" x2="150" y2="75" stroke="#fff" stroke-width="2" stroke-linecap="round"/><g><animate attributeName="opacity" values="0.2;1;0.2" dur="3s" repeatCount="indefinite"/><path d="M 100 85 Q 85 65 78 48" stroke="#4a9eff" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="76" cy="44" r="6" fill="#e8c9a0" stroke="#4a9eff" stroke-width="1.5"/></g><path d="M 118 73 Q 112 60 104 58" stroke="#4a9eff" stroke-width="1.5" fill="none" stroke-linecap="round"/><polygon points="102,55 108,60 104,63" fill="#4a9eff"/></svg>`,
+
+  neckReps: `<svg viewBox="0 0 180 130"><circle cx="90" cy="26" r="13" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><rect x="80" y="44" width="20" height="40" rx="4" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><ellipse cx="70" cy="52" rx="14" ry="7" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><ellipse cx="110" cy="52" rx="14" ry="7" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><ellipse cx="90" cy="18" rx="14" ry="7" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="90" y1="52" x2="90" y2="18" stroke="#fff" stroke-width="2" stroke-linecap="round"/><g><animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0" dur="2s" repeatCount="indefinite"/><path d="M 78 12 L 78 6" stroke="#2dd4a0" stroke-width="1.5" stroke-linecap="round"/><polygon points="75,7 81,7 78,2" fill="#2dd4a0"/></g><text x="40" y="20" font-size="8" fill="#2dd4a0" font-family="DM Sans" font-weight="600">isometric</text></svg>`,
+
+  wallAngel: `<svg viewBox="0 0 180 130"><rect x="128" y="5" width="12" height="120" fill="#2a2a3a"/><circle cx="80" cy="22" r="12" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><rect x="72" y="34" width="16" height="40" rx="4" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><g><animateTransform attributeName="transform" type="translate" values="0 0; 0 -13; 0 0" dur="3s" repeatCount="indefinite"/><line x1="72" y1="45" x2="55" y2="38" stroke="#2dd4a0" stroke-width="2.5" stroke-linecap="round"/><line x1="55" y1="38" x2="55" y2="25" stroke="#2dd4a0" stroke-width="2.5" stroke-linecap="round"/><line x1="88" y1="45" x2="105" y2="38" stroke="#2dd4a0" stroke-width="2.5" stroke-linecap="round"/><line x1="105" y1="38" x2="105" y2="25" stroke="#2dd4a0" stroke-width="2.5" stroke-linecap="round"/></g><line x1="76" y1="74" x2="68" y2="110" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="84" y1="74" x2="92" y2="110" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`,
+
+  serratusWall: `<svg viewBox="0 0 180 130"><rect x="5" y="5" width="10" height="120" fill="#2a2a3a"/><circle cx="95" cy="30" r="12" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><path d="M 88 42 L 68 80" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><g><animateTransform attributeName="transform" type="translate" values="0 0; 6 0; 0 0" dur="2.4s" repeatCount="indefinite"/><line x1="82" y1="52" x2="30" y2="45" stroke="#2dd4a0" stroke-width="2" stroke-linecap="round"/><circle cx="30" cy="45" r="5" fill="#e8c9a0" stroke="#2dd4a0" stroke-width="1.5"/></g><line x1="68" y1="80" x2="58" y2="115" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="70" y1="82" x2="82" y2="115" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`,
+
+  bandPullApart: `<svg viewBox="0 0 180 130"><g><animateTransform attributeName="transform" type="scale" values="1 1; 1.12 1; 1 1" additive="sum" dur="2.5s" repeatCount="indefinite"/><path d="M 38 65 Q 90 58 142 65" stroke="#dcdcf0" stroke-width="3" fill="none" stroke-linecap="round"/></g><circle cx="90" cy="28" r="12" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><rect x="82" y="40" width="16" height="38" rx="4" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><line x1="82" y1="55" x2="38" y2="65" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="38" cy="65" r="6" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="98" y1="55" x2="142" y2="65" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="142" cy="65" r="6" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="86" y1="78" x2="78" y2="112" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="94" y1="78" x2="102" y2="112" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`,
+
+  facePull: `<svg viewBox="0 0 180 130"><circle cx="165" cy="55" r="6" fill="#555" stroke="#fff" stroke-width="1.5"/><g><animateTransform attributeName="transform" type="translate" values="0 0; -16 0; 0 0" dur="2.6s" repeatCount="indefinite"/><line x1="120" y1="55" x2="80" y2="45" stroke="#dcdcf0" stroke-width="1.5" stroke-linecap="round"/><line x1="120" y1="55" x2="80" y2="65" stroke="#dcdcf0" stroke-width="1.5" stroke-linecap="round"/><circle cx="80" cy="45" r="5" fill="#e8c9a0" stroke="#fff" stroke-width="1"/><circle cx="80" cy="65" r="5" fill="#e8c9a0" stroke="#fff" stroke-width="1"/></g><line x1="165" y1="55" x2="120" y2="55" stroke="#dcdcf0" stroke-width="2" stroke-linecap="round"/><circle cx="60" cy="30" r="12" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="60" y1="42" x2="60" y2="82" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="60" y1="52" x2="80" y2="45" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="60" y1="52" x2="80" y2="65" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="60" y1="82" x2="48" y2="115" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line x1="60" y1="82" x2="72" y2="115" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`,
+
+  ty: `<svg viewBox="0 0 180 130"><rect x="30" y="58" width="108" height="18" rx="9" fill="#4a4a5a" stroke="#fff" stroke-width="1.5"/><circle cx="146" cy="62" r="10" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><g><animateTransform attributeName="transform" type="rotate" values="0 88 62; -22 88 62; 0 88 62" dur="3s" repeatCount="indefinite"/><line x1="88" y1="62" x2="55" y2="42" stroke="#dcdcf0" stroke-width="2.5" stroke-linecap="round"/><line x1="88" y1="62" x2="55" y2="82" stroke="#dcdcf0" stroke-width="2.5" stroke-linecap="round"/><circle cx="55" cy="42" r="5" fill="#e8c9a0" stroke="#fff" stroke-width="1"/><circle cx="55" cy="82" r="5" fill="#e8c9a0" stroke="#fff" stroke-width="1"/></g><text x="30" y="118" font-size="11" fill="#dcdcf0" opacity="0.4" font-family="DM Serif Display" font-weight="bold">T → Y</text></svg>`,
+
+  serratusPush: `<svg viewBox="0 0 180 130"><path d="M 30 78 L 138 56" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="146" cy="49" r="11" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="70" y1="70" x2="65" y2="95" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="65" cy="98" rx="7" ry="4" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="100" y1="62" x2="95" y2="87" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="95" cy="90" rx="7" ry="4" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><g><animateTransform attributeName="transform" type="translate" values="0 0; 0 -6; 0 0" dur="2.2s" repeatCount="indefinite"/><path d="M 85 50 Q 82 42 86 38" stroke="#2dd4a0" stroke-width="1.5" fill="none" stroke-linecap="round"/><polygon points="84,35 90,40 86,42" fill="#2dd4a0"/></g><line x1="30" y1="78" x2="24" y2="100" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>`,
+
+  treadmill: `<svg viewBox="0 0 180 130"><circle cx="105" cy="28" r="12" fill="#e8c9a0" stroke="#fff" stroke-width="1.5"/><line x1="105" y1="40" x2="105" y2="72" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><g><animateTransform attributeName="transform" type="rotate" values="-12 105 60; 12 105 60; -12 105 60" dur="0.9s" repeatCount="indefinite"/><line x1="105" y1="48" x2="88" y2="63" stroke="#fff" stroke-width="2" stroke-linecap="round"/></g><g><animateTransform attributeName="transform" type="rotate" values="12 105 60; -12 105 60; 12 105 60" dur="0.9s" repeatCount="indefinite"/><line x1="105" y1="48" x2="122" y2="62" stroke="#fff" stroke-width="2" stroke-linecap="round"/></g><g><animateTransform attributeName="transform" type="rotate" values="14 105 72; -14 105 72; 14 105 72" dur="0.9s" repeatCount="indefinite"/><line x1="105" y1="72" x2="90" y2="98" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></g><g><animateTransform attributeName="transform" type="rotate" values="-14 105 72; 14 105 72; -14 105 72" dur="0.9s" repeatCount="indefinite"/><line x1="105" y1="72" x2="120" y2="98" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></g><rect x="30" y="108" width="120" height="8" rx="4" stroke="#4a9eff" stroke-width="1.5" fill="none"/></svg>`
+};
+
+// ============ EXERCISE LIBRARY ============
+const LIB = {
+  heat:        { name:"Warm-Up: Heat", phase:"warmup", type:"hold", chip:"3–5 min", cue:"Apply a heat pad to the upper traps and neck, or take a warm shower. Raises tissue temperature so everything that follows moves better. (Timer shortened here as a placeholder, run the full duration on your own.)", dur:30, svg:SVG.heat },
+  massager:    { name:"Massager", phase:"release", type:"hold", chip:"2 min max", cue:"Work the upper trapezius and levator scapulae on both sides. Don't exceed two minutes total.", dur:30, svg:SVG.massager },
+  neckStretch: { name:"Levator Scapulae Stretch", phase:"stretch", type:"hold", chip:"30s each side", cue:"Ear to shoulder, then nose toward armpit. Light overpressure with the same-side hand. Switch halfway.", dur:30, svg:SVG.neckStretch },
+  foamRoller:  { name:"Thoracic Foam Roller Extension", phase:"mobility", type:"reps", chip:"work 3–4 segments", cue:"Roller under mid-back, hands behind head. Extend over it, exhale, pause at each segment. Work upward.", dur:45, svg:SVG.foamRoller },
+  reachThrough:{ name:"Thoracic Reach Through", phase:"mobility", type:"reps", chip:"both sides", cue:"On all fours, hand behind head. Thread the elbow under, then rotate up and open the chest. Hips stay square.", dur:45, svg:SVG.reachThrough },
+  catCow:      { name:"Cat-Cow (Thoracic Focus)", phase:"mobility", type:"reps", chip:"slow, with breath", cue:"On all fours. Round up through the UPPER back on the exhale, arch on the inhale. Drive the motion from the thoracic spine, not just the lower back.", dur:45, svg:SVG.catCow },
+  bookOpener:  { name:"Side-Lying Book Opener", phase:"mobility", type:"reps", chip:"both sides", cue:"Side-lying, knees stacked and pinned. Sweep the top arm open toward the floor behind you, eyes following the hand. Switch halfway.", dur:45, svg:SVG.bookOpener },
+  neckReps:    { name:"Neck Isometrics", phase:"activation", type:"reps", chip:"4 directions", cue:"Hand against head, push gently without letting the head move. Front, back, each side. Hold 3–5s per direction.", dur:45, svg:SVG.neckReps },
+
+  ty:          { name:"T and Y Raises", phase:"strengthen", type:"reps", chip:"T then Y", cue:"Face down. T: arms out to sides, thumbs up, lift and squeeze. Y: arms at 45°, same lift. Light or no weight.", dur:45, svg:SVG.ty },
+  bandPullApart:{ name:"Band Pull-Aparts", phase:"strengthen", type:"reps", chip:"squeeze blades", cue:"Band at shoulder height, arms straight. Pull apart, squeeze the shoulder blades, control the return. No shrugging.", dur:45, svg:SVG.bandPullApart },
+  facePull:    { name:"Face Pulls", phase:"strengthen", type:"reps", chip:"rope to face", cue:"Pull the rope toward your face, elbows flaring up and out, hands by your ears. Slow return, shoulders down.", dur:45, svg:SVG.facePull },
+  serratusPush:{ name:"Serratus Pushup", phase:"strengthen", type:"reps", chip:"arms straight", cue:"Plank position, elbows locked. Push the upper back up (blades spread), then let them draw together. Movement is in the scapulae.", dur:45, svg:SVG.serratusPush },
+  treadmill:   { name:"Treadmill Walk", phase:"strengthen", type:"hold", chip:"5–15 min", cue:"Finish with an upright walk to groove the posture you just built. (Timer shortened as a placeholder, run the full duration on your own.)", dur:30, svg:SVG.treadmill }
+};
+
+// ============ ROUTINES ============
+const ROUTINES = {
+  home: ["heat","massager","neckStretch","foamRoller","reachThrough","catCow","bookOpener","neckReps"],
+  gym:  ["heat","massager","neckStretch","foamRoller","reachThrough","catCow","bookOpener","neckReps","ty","bandPullApart","facePull","serratusPush","treadmill"]
+};
+
+document.getElementById('homeCount').textContent = ROUTINES.home.length + " moves";
+document.getElementById('gymCount').textContent = ROUTINES.gym.length + " moves";
+
+// ============ STATE ============
+const REST = 10;
+let queue=[], idx=0, mode='home';
+let remaining=0, ticker=null, playing=false, resting=false;
+const RING_CIRC = 2 * Math.PI * 66;
+
+// ============ AUDIO ============
+let actx=null;
+function beep(freq=880, dur=0.12, vol=0.25){
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.frequency.value=freq; o.type='sine';
+    g.gain.setValueAtTime(vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+function tripleBeep(){ beep(660,0.1); setTimeout(()=>beep(880,0.1),130); setTimeout(()=>beep(1100,0.16),260); }
+
+// ============ FLOW ============
+function startWorkout(m){
+  mode=m; queue=ROUTINES[m].slice(); idx=0;
+  if(!actx){ try{actx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+  document.getElementById('startScreen').classList.remove('active');
+  document.getElementById('workoutScreen').classList.add('active');
+  document.getElementById('modeLabel').textContent = (m==='home'?'Home':'Gym');
+  loadExercise(true);
+}
+
+function loadExercise(autoplay){
+  resting=false;
+  document.getElementById('workoutBody').classList.remove('resting');
+  const ex = LIB[queue[idx]];
+  document.getElementById('demoSlot').innerHTML = ex.svg;
+  document.getElementById('exName').textContent = ex.name;
+  document.getElementById('exChip').textContent = ex.chip;
+  document.getElementById('exCue').textContent = ex.cue;
+  document.getElementById('phaseTag').textContent = capitalize(ex.phase);
+  document.getElementById('phaseTag').className = 'phase-tag '+ex.phase;
+  document.getElementById('progressLabel').textContent = `Exercise ${idx+1} of ${queue.length}`;
+  document.getElementById('progressFill').style.width = ((idx)/queue.length*100)+'%';
+  document.getElementById('ringLabel').textContent = 'seconds';
+  document.getElementById('ringFg').style.stroke = 'var(--accent)';
+  remaining = ex.dur;
+  updateRing(ex.dur, ex.dur);
+  document.getElementById('ringTime').textContent = remaining;
+  stopTicker();
+  if(autoplay){ play(); } else { pause(); }
+}
+
+function startRest(){
+  resting=true;
+  document.getElementById('workoutBody').classList.add('resting');
+  const nextEx = LIB[queue[idx+1]];
+  document.getElementById('restNext').textContent = 'Next: ' + nextEx.name;
+  document.getElementById('ringLabel').textContent = 'rest';
+  document.getElementById('ringFg').style.stroke = 'var(--accent2)';
+  remaining = REST;
+  updateRing(REST, REST);
+  document.getElementById('ringTime').textContent = remaining;
+  play();
+}
+
+function tick(){
+  remaining--;
+  document.getElementById('ringTime').textContent = Math.max(remaining,0);
+  const total = resting ? REST : LIB[queue[idx]].dur;
+  updateRing(remaining, total);
+  if(remaining===3 && !resting) beep(660,0.08,0.18);
+  if(remaining<=0){
+    if(resting){
+      tripleBeep();
+      idx++;
+      loadExercise(true);
+    } else {
+      if(idx >= queue.length-1){
+        beep(880,0.15); setTimeout(()=>beep(1100,0.25),180);
+        finish();
+      } else {
+        beep(520,0.12);
+        startRest();
+      }
+    }
+  }
+}
+
+function updateRing(rem, total){
+  const frac = Math.max(rem,0)/total;
+  document.getElementById('ringFg').style.strokeDasharray = RING_CIRC;
+  document.getElementById('ringFg').style.strokeDashoffset = RING_CIRC*(1-frac);
+}
+
+function play(){ playing=true; document.getElementById('playBtn').innerHTML='❚❚'; stopTicker(); ticker=setInterval(tick,1000); }
+function pause(){ playing=false; document.getElementById('playBtn').innerHTML='▶'; stopTicker(); }
+function togglePlay(){ if(actx&&actx.state==='suspended')actx.resume(); playing?pause():play(); }
+function stopTicker(){ if(ticker){clearInterval(ticker);ticker=null;} }
+
+function skipExercise(){
+  beep(440,0.08,0.15);
+  if(resting){ idx++; loadExercise(true); return; }
+  if(idx>=queue.length-1){ finish(); } else { idx++; loadExercise(true); }
+}
+function prevExercise(){
+  beep(440,0.08,0.15);
+  if(resting){ loadExercise(true); return; }
+  if(idx>0){ idx--; } loadExercise(true);
+}
+
+function finish(){
+  stopTicker(); playing=false;
+  document.getElementById('progressFill').style.width='100%';
+  document.getElementById('workoutScreen').classList.remove('active');
+  document.getElementById('doneScreen').classList.add('active');
+  document.getElementById('doneSummary').textContent =
+    (mode==='home'?'Home routine done.':'Full gym routine done.') + ' Consistency is what moves the needle. See you next session.';
+}
+function exitWorkout(){ stopTicker(); playing=false; backToStart(); }
+function backToStart(){
+  document.getElementById('workoutScreen').classList.remove('active');
+  document.getElementById('doneScreen').classList.remove('active');
+  document.getElementById('startScreen').classList.add('active');
+}
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('workoutScreen').classList.contains('active')) return;
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  if(e.code==='ArrowRight') skipExercise();
+  if(e.code==='ArrowLeft') prevExercise();
+});
+</script>
+</body>
+</html>
